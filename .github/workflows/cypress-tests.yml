@@ -1,0 +1,54 @@
+name: Testes Automatizados com Cypress
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛎️ Checkout do código
+        uses: actions/checkout@v3
+
+      - name: 🔧 Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: 📦 Instalar dependências
+        run: yarn install
+
+      - name: 🚀 Iniciar o servidor da aplicação
+        run: yarn start &
+        env:
+          PORT: 3000
+
+      - name: 🏗️ Esperar o servidor iniciar
+        run: npx wait-on http://localhost:3000
+
+      - name: 🧪 Rodar testes Cypress
+        run: yarn cypress run
+
+      - name: 📊 Armazenar vídeos e screenshots de falhas
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: cypress-results
+          path: |
+            cypress/screenshots
+            cypress/videos
+
+      - name: 🚀 Gerar relatório Allure
+        run: yarn allure:generate
+
+      - name: 📈 Publicar relatório Allure
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report
+          path: allure-report
