@@ -23,39 +23,34 @@ jobs:
           node-version: 18
           cache: 'yarn'
 
-      - name: Restaurar cache das dependências da API
-        uses: actions/cache@v4
-        with:
-          path: Apps/api/node_modules
-          key: ${{ runner.os }}-api-node-${{ hashFiles('Apps/api/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-api-node-
-
-      - name: Restaurar cache das dependências do Web
-        uses: actions/cache@v4
-        with:
-          path: Apps/web/node_modules
-          key: ${{ runner.os }}-web-node-${{ hashFiles('Apps/web/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-web-node-
-
       - name: Instalar dependências para a API
         run: |
           cd Apps/api
+          rm -rf node_modules
+          [ -f package-lock.json ] && rm package-lock.json
           yarn install --ignore-scripts
           yarn add better-sqlite3 --build-from-source
 
       - name: Instalar dependências para o Web
         run: |
           cd Apps/web
+          rm -rf node_modules
+          [ -f package-lock.json ] && rm package-lock.json
           yarn install
 
-      - name: Iniciar API e Web
+      - name: Iniciar API em segundo plano
         run: |
-          cd Apps/api && yarn dev & api_pid=$!
-          cd ../web && yarn dev & web_pid=$!
-          sleep 5
-          trap "kill $api_pid $web_pid" EXIT
+          cd Apps/api
+          yarn dev &
+      
+      - name: Iniciar Web em segundo plano
+        run: |
+          cd Apps/web
+          yarn dev &
+
+      - name: Aguardar servidores iniciarem
+        run: |
+          npx wait-on http://localhost:3000 http://localhost:4000 --timeout 60000
 
       - name: Instalar dependências para testes
         run: |
@@ -63,11 +58,9 @@ jobs:
           yarn add cypress --dev
           yarn cypress install
 
-      - name: Rodar testes no Cypress (com paralelismo)
+      - name: Rodar testes no Cypress
         run: |
-          yarn cypress run --record --parallel
-        env:
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          yarn cypress run --record --parallel --headless
 
       - name: Upload de screenshots e vídeos em caso de falha
         if: failure()
@@ -76,12 +69,6 @@ jobs:
           name: cypress-artifacts
           path: cypress/screenshots/, cypress/videos/
 
-      - name: Gerar relatório de testes
+      - name: Finalizar processos
         run: |
-          yarn cypress run --reporter junit --reporter-options "mochaFile=results/junit/test-results.xml"
-
-      - name: Publicar relatório de testes
-        uses: actions/upload-artifact@v4
-        with:
-          name: cypress-test-results
-          path: results/junit/
+          pkill -f 'yarn dev' || true
