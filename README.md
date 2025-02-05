@@ -77,5 +77,6 @@ yarn cypress run
 ## 📜 Licença
 Este projeto está sob a licença MIT. Sinta-se à vontade para contribuir!
 
-🔹 Criado por [Seu Nome]
+🔹 Criado por Igor Faria Pondé Cardoso.
+🔹 Inspirado no curso do Fernando Papito.
 
