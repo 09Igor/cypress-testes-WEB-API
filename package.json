@@ -1,0 +1,10 @@
+{
+  "license": "MIT",
+  "devDependencies": {
+    "@shelex/cypress-allure-plugin": "^2.40.2",
+    "allure-commandline": "^2.32.0",
+    "cypress": "12.0.0",
+    "http-server": "^14.1.1"
+  },
+  "packageManager": "yarn@1.22.22"
+}
