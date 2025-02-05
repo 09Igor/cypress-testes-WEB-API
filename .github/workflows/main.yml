@@ -1,6 +1,6 @@
-name: CI Pipeline
+name: Cypress Tests
 
-on:
+on: 
   push:
     branches:
       - master
@@ -9,35 +9,46 @@ on:
       - master
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    # Checkout o código do repositório
-    - name: Checkout code
-      uses: actions/checkout@v2
-    
-    # Configura o Node.js
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16.x'
+      - name: Checkout do código
+        uses: actions/checkout@v4
 
-    # Instala dependências de build necessárias para pacotes nativos
-    - name: Install dependencies for native packages
-      run: sudo apt-get install -y build-essential python3
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'yarn'
 
-    # Limpa node_modules e package-lock.json para garantir uma instalação limpa
-    - name: Clean up node_modules and install dependencies
-      run: |
-        rm -rf node_modules
-        rm package-lock.json
-        yarn install
+      - name: Instalar dependências para a API
+        run: |
+          cd Apps/api
+          rm -rf node_modules
+          [ -f package-lock.json ] && rm package-lock.json
+          yarn install --ignore-scripts
+          yarn add better-sqlite3 --build-from-source
 
-    # Instala o node-gyp (caso necessário)
-    - name: Install node-gyp
-      run: npm install -g node-gyp
+      - name: Instalar dependências para o Web
+        run: |
+          cd Apps/web
+          rm -rf node_modules
+          [ -f package-lock.json ] && rm package-lock.json
+          yarn install
 
-    # Executa os testes (por exemplo, com o Cypress)
-    - name: Run Cypress tests
-      run: npx cypress run
+      - name: Iniciar API em segundo plano
+        run: |
+          cd Apps/api
+          yarn dev &
+          sleep 5
+
+      - name: Iniciar Web em segundo plano
+        run: |
+          cd Apps/web
+          yarn dev &
+          sleep 5
+
+      - name: Rodar testes no Cypress
+        run: |
+          yarn cypress run
