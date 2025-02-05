@@ -1,57 +1,43 @@
-name: Cypress Tests
+name: CI Pipeline
 
-on: 
-  workflow_dispatch:  # Permite rodar manualmente pelo GitHub Actions
+on:
   push:
+    branches:
+      - master
   pull_request:
+    branches:
+      - master
 
 jobs:
-  cypress-run:
+  build:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    # Checkout o código do repositório
+    - name: Checkout code
+      uses: actions/checkout@v2
+    
+    # Configura o Node.js
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16.x'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14'
+    # Instala dependências de build necessárias para pacotes nativos
+    - name: Install dependencies for native packages
+      run: sudo apt-get install -y build-essential python3
 
-      - name: Install Dependencies (Root)
-        run: yarn install
+    # Limpa node_modules e package-lock.json para garantir uma instalação limpa
+    - name: Clean up node_modules and install dependencies
+      run: |
+        rm -rf node_modules
+        rm package-lock.json
+        yarn install
 
-      - name: Install Dependencies (API)
-        run: |
-          cd Apps/api
-          yarn install
+    # Instala o node-gyp (caso necessário)
+    - name: Install node-gyp
+      run: npm install -g node-gyp
 
-      - name: Install Dependencies (Web)
-        run: |
-          cd Apps/web
-          yarn install
-
-      - name: Start API
-        run: |
-          cd Apps/api
-          npm run dev &
-        env:
-          NODE_ENV: test
-
-      - name: Start Web Application
-        run: |
-          cd Apps/web
-          npm run dev &
-        env:
-          NODE_ENV: test
-
-      - name: Wait for API and Web to be ready
-        run: |
-          npx wait-on http://localhost:3333
-          npx wait-on http://localhost:3000
-
-      - name: Run Cypress Tests
-        uses: cypress-io/github-action@v6
-        with:
-          wait-on: 'http://localhost:3000, http://localhost:3333'
-          wait-on-timeout: 120s
+    # Executa os testes (por exemplo, com o Cypress)
+    - name: Run Cypress tests
+      run: npx cypress run
